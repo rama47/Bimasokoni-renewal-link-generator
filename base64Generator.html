@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bimasokoni Renewal link Generator</title>
+  <style>
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#f7fafc; color:#0f172a; padding:24px; }
+    .card { background:white; border-radius:12px; padding:20px; max-width:720px; margin:12px auto; box-shadow:0 6px 18px rgba(2,6,23,0.06); }
+    label { display:block; margin-top:12px; font-weight:600; }
+    input[type=text] { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:14px; }
+    .row { display:flex; gap:12px; }
+    button { margin-top:12px; padding:10px 14px; border-radius:8px; border:0; background:#0ea5a4; color:white; cursor:pointer; font-weight:600; }
+    button.secondary { background:#64748b; }
+    pre { background:#0b1220; color:#e6eef8; padding:12px; border-radius:8px; overflow:auto; }
+    .hint { color:#475569; font-size:13px; margin-top:6px; }
+    .warning { color:#b91c1c; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Broker ID + Risknote → Base64</h2>
+    <p class="hint">Enter a broker id (will be left-padded with zeros to 4 digits if shorter) and a risknote number. The page will concatenate them and produce a Base64 string with a renew link.</p>
+
+    <label for="brokerId">Broker ID (numeric)</label>
+    <input id="brokerId" type="text" maxlength="10" placeholder="e.g. 23 or 0023 or 1234" />
+
+    <label for="riskNote">Risknote number</label>
+    <input id="riskNote" type="text" maxlength="100" placeholder="e.g. RN-2025-001" />
+
+    <div class="row">
+      <button id="generateBtn">Generate Base64</button>
+      <button id="copyBtn" class="secondary" disabled>Copy</button>
+      <button id="downloadBtn" class="secondary" disabled>Download .txt</button>
+    </div>
+
+    <p id="status" class="hint"></p>
+
+    <label>Concatenated value</label>
+    <pre id="concatenated">-</pre>
+
+    <label>Base64 result</label>
+    <pre id="base64">-</pre>
+
+    <label>Final Link</label>
+    <pre id="finalLink">-</pre>
+
+    <script>
+      const brokerInput = document.getElementById('brokerId');
+      const riskInput = document.getElementById('riskNote');
+      const genBtn = document.getElementById('generateBtn');
+      const copyBtn = document.getElementById('copyBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const concatenatedEl = document.getElementById('concatenated');
+      const base64El = document.getElementById('base64');
+      const finalLinkEl = document.getElementById('finalLink');
+      const statusEl = document.getElementById('status');
+
+      const baseUrl = "http://bimasokoni.smartx.co.tz/renew/";
+
+      // UTF-8 safe base64 encode
+      function utf8ToBase64(str) {
+        const bytes = new TextEncoder().encode(str);
+        let binary = '';
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          const slice = bytes.subarray(i, i + chunkSize);
+          binary += String.fromCharCode.apply(null, slice);
+        }
+        return btoa(binary);
+      }
+
+      function padBrokerId(input) {
+        const digits = String(input).replace(/\D/g, '');
+        if (digits.length === 0) return '';
+        if (digits.length >= 4) return digits;
+        return digits.padStart(4, '0');
+      }
+
+      genBtn.addEventListener('click', () => {
+        statusEl.textContent = '';
+        const rawBroker = brokerInput.value.trim();
+        const risk = riskInput.value.trim();
+
+        const padded = padBrokerId(rawBroker);
+        if (!padded) {
+          statusEl.innerHTML = '<span class="warning">Broker ID must contain at least one digit.</span>';
+          concatenatedEl.textContent = '-';
+          base64El.textContent = '-';
+          finalLinkEl.textContent = '-';
+          copyBtn.disabled = true;
+          downloadBtn.disabled = true;
+          return;
+        }
+
+        if (!risk) {
+          statusEl.innerHTML = '<span class="warning">Risknote number is required.</span>';
+          concatenatedEl.textContent = '-';
+          base64El.textContent = '-';
+          finalLinkEl.textContent = '-';
+          copyBtn.disabled = true;
+          downloadBtn.disabled = true;
+          return;
+        }
+
+        if (rawBroker.replace(/\D/g,'').length > 4) {
+          statusEl.innerHTML = '<span class="warning">Broker ID has more than 4 digits — using full value without padding.</span>';
+        }
+
+        const concatenated = padded + risk;
+        const base64 = utf8ToBase64(concatenated);
+        const finalLink = baseUrl + base64;
+
+        concatenatedEl.textContent = concatenated;
+        base64El.textContent = base64;
+        finalLinkEl.textContent = finalLink;
+
+        statusEl.textContent = 'Generated successfully.';
+        copyBtn.disabled = false;
+        downloadBtn.disabled = false;
+      });
+
+      copyBtn.addEventListener('click', async () => {
+        try {
+          const text = finalLinkEl.textContent;
+          await navigator.clipboard.writeText(text);
+          statusEl.textContent = 'Copied final link to clipboard.';
+        } catch (err) {
+          statusEl.textContent = 'Failed to copy (permission denied).';
+        }
+      });
+
+      downloadBtn.addEventListener('click', () => {
+        const content = finalLinkEl.textContent;
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'renew_link.txt';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      riskInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') genBtn.click();
+      });
+    </script>
+  </div>
+</body>
+</html>

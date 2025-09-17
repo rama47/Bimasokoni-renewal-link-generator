@@ -19,7 +19,7 @@
 </head>
 <body>
   <div class="card">
-    <h2>Broker ID + Risknote → Base64</h2>
+    <h2>Bimasokoni Renewal link Generator</h2>
     <p class="hint">Enter a broker id (will be left-padded with zeros to 4 digits if shorter) and a risknote number. The page will concatenate them and produce a Base64 string with a renew link.</p>
 
     <label for="brokerId">Broker ID (numeric)</label>
@@ -29,7 +29,7 @@
     <input id="riskNote" type="text" maxlength="100" placeholder="e.g. RN-2025-001" />
 
     <div class="row">
-      <button id="generateBtn">Generate Base64</button>
+      <button id="generateBtn">Generate Link</button>
       <button id="copyBtn" class="secondary" disabled>Copy</button>
       <button id="downloadBtn" class="secondary" disabled>Download .txt</button>
     </div>
@@ -150,4 +150,5 @@
   </div>
 </body>
 </html>
+
 
